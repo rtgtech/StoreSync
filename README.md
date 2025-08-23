@@ -7,5 +7,8 @@ project I created using Java and Swing UI. I am realy proud of myself for buildi
 this project. I extend my gratitude to my friends and Mentors.
   I encourage you to improve my project and fix the mistakes I have made. Thank You :)
 
+### Documentation
+  Refer Docs.md. Helpful if you are a beginer.
+
 ### Change Logs
 - 23-Aug-2025: Added storesync.java
