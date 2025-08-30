@@ -1,12 +1,19 @@
+package V2;
+
 import javax.swing.*;
 import javax.swing.border.*;
 import javax.swing.event.*;
+import javax.swing.table.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.sql.*;
 import java.util.ArrayList;
 import java.time.LocalDate;
 import java.awt.geom.RoundRectangle2D;
+import java.io.File;
+
+//=======================>
+//Modified GUI components
 
 class BlueButton extends JButton {
     private int cornerRadius = 20;
@@ -18,7 +25,7 @@ class BlueButton extends JButton {
         this.setForeground(Color.WHITE);
         this.setBackground(new Color(51, 102, 255));
         this.setFocusPainted(false);
-        this.setContentAreaFilled(false); 
+        this.setContentAreaFilled(false);
         this.setBorderPainted(false);
     }
 
@@ -42,8 +49,11 @@ class BlueButton extends JButton {
         super.paintComponent(g); // default text painting
         g2.dispose();
     }
+
     @Override
-    protected void paintBorder(Graphics g) {}
+    protected void paintBorder(Graphics g) {
+    }
+
     @Override
     public boolean contains(int x, int y) {
         Shape shape = new RoundRectangle2D.Float(0, 0, getWidth(), getHeight(), cornerRadius, cornerRadius);
@@ -51,94 +61,137 @@ class BlueButton extends JButton {
     }
 }
 
-class Item {
-    int id;
-    String name;
-    int quantiy;
-    double price;
-
-    Item(int id, String s, int q, double p) {
-        this.id = id;
-        name = s;
-        quantiy = q;
-        price = p;
-    }
-}
-
-class Table {
-    ArrayList<Item> items;
-
-    Table() {
-        items = new ArrayList<>();
-    }
-
-    String[] getAsString() {
-        String[] row = new String[20];
-
-        return row;
-    }
-
-    void print() {
-        for (Item i : items) {
-            System.out.println("[" + i.id + "|" + i.name + "|" + i.quantiy + "|" + i.price + "]");
-        }
-    }
-
-    String[] returnAsStirngL() {
-        String[] rows = new String[items.size()];
-        int i = 0;
-        for (Item it : items) {
-            rows[i] = String.format("%-14s", it.name).substring(0, 14) + " | Qty: " + String.valueOf(it.quantiy)
-                    + " | price: " + String.valueOf(it.price);
-            i++;
-        }
-        return rows;
-    }
-}
-
-class MyList extends JList<String> {
-    int size;
-
-    MyList(String[] list) {
-        super(list);
-        this.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        this.setCellRenderer(new DefaultListCellRenderer() {
-            @Override
-            public Component getListCellRendererComponent(JList<?> list, Object value, int index,
-                    boolean isSelected, boolean cellHasFocus) {
-                JLabel label = (JLabel) super.getListCellRendererComponent(list, value, index, isSelected,
-                        cellHasFocus);
-                // Set custom font and size
-
-                label.setFont(new Font("Eras Demi ITC", Font.PLAIN, 30)); // Font: Arial, Size: 16
-                return label;
-            }
-        });
-    }
-}
-
 class ScrollPane extends JScrollPane {
-    ScrollPane(MyList list, int x, int y, int w, int h) {
-        super(list);
-
-        list.addListSelectionListener(new ListSelectionListener() {
-            @Override
-            public void valueChanged(ListSelectionEvent e) {
-                if (!e.getValueIsAdjusting()) { // Prevent double events
-                    String selectedItem = list.getSelectedValue();
-                    if (selectedItem != null) {
-                        // Call the user-defined function
-                    }
-                }
-            }
-        });
-
+    ScrollPane(CustomTable table, int x, int y, int w, int h) {
+        super(table);
         this.setBounds(x, y, w, h);
     }
+
+    ScrollPane(JList<String> list, int x, int y, int w, int h) {
+        super(list);
+        this.setBounds(x, y, w, h);
+    }
+
+    ScrollPane(int x, int y, int w, int h) {
+        this.setBounds(x, y, w, h);
+    }
+
 }
 
+class MyLabel extends Label {
+    MyLabel(String s, int x, int y, int w, int h) {
+        super(s);
+        this.setBounds(x, y, w, h);
+        super.setFont(new Font("Eras Demi ITC", Font.BOLD, 28));
+    }
+}
+
+class CustomTable extends JTable {
+    private final DefaultTableModel model;
+    public CustomTable() {
+        String[] columnNames = { "ID", "Name", "Quantity", "Price" };
+
+        model = new DefaultTableModel(columnNames, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+
+        this.setModel(model);
+        this.setFont(new Font("Eras Demi ITC", Font.PLAIN, 24));
+        this.setRowHeight(30);
+
+        this.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        this.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+
+        TableColumn idCol = this.getColumnModel().getColumn(0);
+        this.getColumnModel().removeColumn(idCol);
+    }
+
+    public void setColumnWidths(int x, int y, int z) {
+        TableColumn nameCol = this.getColumnModel().getColumn(0); 
+        TableColumn qtyCol = this.getColumnModel().getColumn(1); 
+        TableColumn priceCol = this.getColumnModel().getColumn(2); 
+
+        nameCol.setPreferredWidth(x);
+        qtyCol.setPreferredWidth(y);
+        priceCol.setPreferredWidth(z);
+    }
+
+    public void addRow(int id, String name, int quantity, double price) {
+        model.addRow(new Object[] { id, name, quantity, price });
+    }
+
+    public int deleteSelectedRow() {
+        int selectedRow = this.getSelectedRow();
+        if (selectedRow >= 0) {
+            model.removeRow(convertRowIndexToModel(selectedRow));
+            return selectedRow;
+        }
+        return -1;
+    }
+
+    public int getSelectedRowIndex() {
+        return this.getSelectedRow();
+    }
+
+    public int getSelectedRowId() {
+        int viewRow = this.getSelectedRow();
+        if (viewRow >= 0) {
+            int modelRow = convertRowIndexToModel(viewRow);
+            Object value = model.getValueAt(modelRow, 0); 
+            if (value instanceof Integer) {
+                return (Integer) value;
+            } else {
+                try {
+                    return Integer.parseInt(value.toString());
+                } catch (NumberFormatException e) {
+                    return -1;
+                }
+            }
+        }
+        return -1;
+    }
+
+    public void updateRow(int id, int q) {
+        for (int i = 0; i < model.getRowCount(); i++) {
+            Object value = model.getValueAt(i, 0);
+            if (value instanceof Integer && (Integer) value == id) {
+                model.setValueAt(q, i, 2);
+                return; 
+            }
+        }
+    }
+}
+
+class MyData {
+    public int id;
+    public String name;
+    public int q;
+    public double p;
+
+    MyData(int i, String n, int _q, double _p) {
+        id = i;
+        name = n;
+        q = _q;
+        p = _p;
+    }
+
+    @Override
+    public String toString() {
+        return name;
+    }
+
+    public int getId() {
+        return id;
+    }
+}
+
+// ======================>
+// Database components
 class SqlOperations {
-    String url = "jdbc:sqlite:storesync-db.db";
+    String url = "jdbc:sqlite:storesync.db";
     Connection conn;
     Statement stmt;
 
@@ -163,7 +216,143 @@ class SqlOperations {
         }
     }
 
-    void delete_inv_itm(int id) {
+    public JList<String> getTodayStats() {
+        JList<String> jls = new JList<>();
+        try {
+            ResultSet rs = stmt.executeQuery("SELECT * FROM today_stats WHERE id = 1;");
+            DefaultListModel<String> listModel = new DefaultListModel<>();
+            while (rs.next()) {
+                listModel.addElement("Sales : " + rs.getString(2));
+                listModel.addElement("Expense : " + rs.getString(3));
+                listModel.addElement("Profit : " + rs.getString(4));
+                listModel.addElement("Total no : " + rs.getString(5));
+                listModel.addElement("customers : " + rs.getString(6));
+            }
+            rs.close();
+            jls = new JList<>(listModel);
+            jls.setFont(new Font("Eras Demi ITC", Font.PLAIN, 30));
+            jls.setEnabled(false);
+
+        } catch (SQLException e) {
+            System.out.println(e.getMessage());
+        }
+        return jls;
+    }
+
+    public JList<String> getMonthlyStats() {
+        JList<String> jls = new JList<>();
+        try {
+            ResultSet rs = stmt.executeQuery("SELECT * FROM monthly_stats WHERE id = 1;");
+            DefaultListModel<String> listModel = new DefaultListModel<>();
+            while (rs.next()) {
+                listModel.addElement("Sales : " + rs.getString(2));
+                listModel.addElement("Expense : " + rs.getString(3));
+                listModel.addElement("Profit : " + rs.getString(4));
+                listModel.addElement("Total no : " + rs.getString(5));
+                listModel.addElement("customers : " + rs.getString(6));
+            }
+            rs.close();
+            jls = new JList<>(listModel);
+            jls.setFont(new Font("Eras Demi ITC", Font.PLAIN, 30));
+            jls.setEnabled(false);
+
+        } catch (SQLException e) {
+            System.out.println(e.getMessage());
+        }
+        return jls;
+    }
+
+    public JList<String> getAllStats() {
+        JList<String> jls = new JList<>();
+        try {
+            ResultSet rs = stmt.executeQuery("SELECT * FROM upto_date_stats WHERE id = 1;");
+            DefaultListModel<String> listModel = new DefaultListModel<>();
+            while (rs.next()) {
+                listModel.addElement("Sales : " + rs.getString(2));
+                listModel.addElement("Expense : " + rs.getString(3));
+                listModel.addElement("Profit : " + rs.getString(4));
+                listModel.addElement("Total no : " + rs.getString(5));
+                listModel.addElement("customers : " + rs.getString(6));
+            }
+            rs.close();
+            jls = new JList<>(listModel);
+            jls.setFont(new Font("Eras Demi ITC", Font.PLAIN, 30));
+            jls.setEnabled(false);
+
+        } catch (SQLException e) {
+            System.out.println(e.getMessage());
+        }
+        return jls;
+    }
+
+    public CustomTable getInventory() {
+        CustomTable table = new CustomTable();
+
+        String query = "SELECT * FROM inventory";
+
+        try (ResultSet rs = stmt.executeQuery(query)) {
+            while (rs.next()) {
+                int id = rs.getInt("id");
+                String name = rs.getString("item");
+                int quantity = rs.getInt("count");
+                double price = rs.getDouble("price");
+
+                table.addRow(id, name, quantity, price);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace(); 
+        }
+
+        return table;
+    }
+
+    public void updateInventoryQuantity(int id, int q) {
+        try {
+            stmt.execute("UPDATE inventory SET count = " + q + " WHERE id = " + id + ";");
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+    }
+
+    public boolean isInventory() {
+        int n = 0;
+        try {
+            ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM inventory;");
+            rs.next();
+            n = rs.getInt(1);
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+        return n != 0;
+    }
+
+    public void update(CustomTable table){
+        try {
+            TableModel model = table.getModel();
+            for (int i=0;i<model.getRowCount(); i++){
+                int id = (int) model.getValueAt(i, 0);
+                int count = (int) model.getValueAt(i, 2);
+                stmt.execute("UPDATE inventory SET count = count - "+count+" WHERE id = "+id+";");
+            }
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+    }
+
+    public void populateNameList(JComboBox<MyData> cbox) {
+        try {
+            ResultSet rs = stmt.executeQuery("SELECT * FROM inventory WHERE count > 0;");
+            cbox.removeAllItems();
+            while (rs.next()) {
+                cbox.addItem(new MyData(rs.getInt(1), rs.getString(2), rs.getInt(3), rs.getDouble(4)));
+            }
+            rs.close();
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+    }
+
+    public void deleteInventoryItem(int id) {
         try {
             stmt.execute("DELETE FROM inventory WHERE id = " + id + ";");
         } catch (Exception e) {
@@ -171,195 +360,36 @@ class SqlOperations {
         }
     }
 
-    int get_count_inv() {
-        int n = -1;
+    public int getCurrentId() {
+        int curr_id = 0;
         try {
-            ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM inventory WHERE count > 0;");
-            n = rs.getInt(1);
-            rs.close();
-            return n;
-        } catch (Exception e) {
-            System.out.println(e.getMessage());
-        }
-        return n;
-    }
-
-    void update_itm_qty(Item i, int n) {
-        try {
-            stmt.execute("UPDATE today_stats SET exps = exps + " + (i.price * (n - i.quantiy)) + " WHERE id = 1;");
-            stmt.execute("UPDATE monthly_stats SET exps = exps + " + (i.price * (n - i.quantiy)) + " WHERE id = 1;");
-            stmt.execute("UPDATE upto_date_stats SET exps = exps + " + (i.price * (n - i.quantiy)) + " WHERE id = 1;");
-            stmt.execute("UPDATE inventory SET count = " + n + " WHERE id = " + i.id + ";");
-        } catch (Exception e) {
-            System.out.println(e.getMessage());
-        }
-    }
-
-    MyList get_daily_stats() {
-        String[] rows = new String[5];
-        try {
-            ResultSet rs = stmt.executeQuery("SELECT * FROM today_stats");
-            while (rs.next()) {
-                rows[0] = "Sales : " + rs.getString(2);
-                rows[1] = "Expense : " + rs.getString(3);
-                rows[2] = "Profit : " + rs.getString(4);
-                rows[3] = "Total no : " + rs.getString(5);
-                rows[4] = "customers : " + rs.getString(6);
-            }
-            rs.close();
-        } catch (Exception e) {
-
-        }
-
-        return new MyList(rows);
-    }
-
-    MyList get_monthly_stats() {
-        String[] rows = new String[5];
-        try {
-            ResultSet rs = stmt.executeQuery("SELECT * FROM monthly_stats");
-            while (rs.next()) {
-                rows[0] = "Sales : " + rs.getString(2);
-                rows[1] = "Expense : " + rs.getString(3);
-                rows[2] = "Profit : " + rs.getString(4);
-                rows[3] = "Total no : " + rs.getString(5);
-                rows[4] = "customers : " + rs.getString(6);
-            }
-            rs.close();
-        } catch (Exception e) {
-            System.out.println(e.getMessage());
-        }
-
-        return new MyList(rows);
-    }
-
-    MyList get_all_stats() {
-        String[] rows = new String[5];
-        try {
-            ResultSet rs = stmt.executeQuery("SELECT * FROM upto_date_stats");
-            while (rs.next()) {
-                rows[0] = "Sales : " + rs.getString(2);
-                rows[1] = "Expense : " + rs.getString(3);
-                rows[2] = "Profit : " + rs.getString(4);
-                rows[3] = "Total no : " + rs.getString(5);
-                rows[4] = "customers : " + rs.getString(6);
-            }
-            rs.close();
-        } catch (Exception e) {
-            System.out.println(e.getMessage());
-        }
-
-        return new MyList(rows);
-    }
-
-    MyList get_inv_items() {
-        return new MyList(get_inv_itemStrings());
-    }
-
-    String[] get_inv_itemStrings() {
-        ArrayList<String> list = new ArrayList<>();
-        String name;
-        String title = "";
-        int i = 0;
-        try {
-            ResultSet rs = stmt.executeQuery("SELECT * FROM inventory");
-            while (rs.next()) {
-                name = rs.getString(2);
-                if (name.length() > 15) {
-                    title = name.substring(0, 14) + "...";
-                } else {
-                    title = String.format("%-17s", name);
-                }
-                title += String.format(" | Qty:%4d", rs.getInt(3)) + String.format(" | Price:%5.2f", rs.getFloat(4));
-                list.add(title);
-            }
-            rs.close();
-        } catch (SQLException e) {
-
-        }
-        String[] rows = new String[list.size()];
-        for (String s: list){
-            rows[i++] = s;
-        }
-        return rows;
-    }
-
-    String[] get_inv_item_names() {
-        ArrayList<String> list = new ArrayList<>();
-        int i=0;
-        try {
-            ResultSet rs = stmt.executeQuery("SELECT * FROM inventory");
-            while (rs.next()) {
-                list.add(rs.getString(2));
-            }
-            rs.close();
-        } catch (SQLException e) {
-
-        }
-        String[] rows = new String[list.size()];
-        for (String s: list){
-            rows[i++] = s;
-        }
-        return rows;
-    }
-
-    Item getSpecificItem(String s) {
-        Item item = new Item(0, "", 0, 0);
-        try {
-            ResultSet rs = stmt.executeQuery("SELECT * FROM inventory");
-            while (rs.next()) {
-                if (String.format("%-14s", rs.getString(2)).substring(0, 14).equals(s)) {
-                    item.id = rs.getInt(1);
-                    item.name = rs.getString(2);
-                    item.quantiy = rs.getInt(3);
-                    item.price = rs.getDouble(4);
-                    break;
-                }
-            }
-            rs.close();
-        } catch (Exception e) {
-        }
-        return item;
-    }
-
-    MyList get_low_inv_items() {
-        String[] items = new String[20];
-        MyList list;
-        int i = 0;
-        try {
-            ResultSet rs = stmt.executeQuery("SELECT * FROM inventory WHERE count < 3;");
-            while (rs.next()) {
-                items[i] = rs.getString(2);
-                i++;
-            }
-            rs.close();
-
-        } catch (Exception e) {
-            System.out.println(e.getMessage());
-        }
-        list = new MyList(items);
-        list.size = i;
-        return list;
-    }
-
-    int get_current_id() {
-        int i = 0;
-        try {
-            ResultSet rs = stmt.executeQuery("SELECT * FROM current WHERE id = 1");
+            ResultSet rs = stmt.executeQuery("SELECT * FROM current WHERE id = 1;");
             rs.next();
-            i = rs.getInt(2);
+            curr_id = rs.getInt(2);
             rs.close();
         } catch (Exception e) {
             System.out.println(e.getMessage());
         }
-
-        return i;
+        return curr_id + 1;
     }
 
-    void add_new_item(String s, int q, double p) {
+    public int getQuantity(int id) {
+        int q = 0;
+        try {
+            ResultSet rs = stmt.executeQuery("SELECT count FROM inventory WHERE id = " + id + ";");
+            rs.next();
+            q = rs.getInt("count");
+            rs.close();
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+        return q;
+    }
+
+    public void addNewItem(String name, int q, double p) {
         try {
             stmt.execute("UPDATE current SET curr_id = curr_id + 1 WHERE id = 1");
-            stmt.execute("INSERT INTO inventory (id, item, count, price) VALUES (" + get_current_id() + ", '" + s
+            stmt.execute("INSERT INTO inventory (id, item, count, price) VALUES (" + getCurrentId() + ", '" + name
                     + "', " + q + ", " + p + ");");
             stmt.execute("UPDATE today_stats SET exps = exps + " + (q * p) + " WHERE id = 1;");
             stmt.execute("UPDATE monthly_stats SET exps = exps + " + (q * p) + " WHERE id = 1;");
@@ -368,48 +398,10 @@ class SqlOperations {
             System.out.println(e.getMessage());
         }
     }
-
-    void update_db(Table t) {
-        int tot_quantity = 0;
-        double total_profit = 0;
-        double total_sales = 0;
-        for (Item i : t.items) {
-            try {
-                stmt.execute("UPDATE inventory SET count = count - " + i.quantiy + " WHERE id = " + i.id + ";");
-                tot_quantity += i.quantiy;
-                total_profit += (i.price / 10) * i.quantiy;
-                total_sales += i.price * 1.1 * i.quantiy;
-            } catch (Exception e) {
-                System.out.println(e.getMessage());
-            }
-        }
-        try {
-            stmt.execute("UPDATE today_stats SET sales = sales + " + total_sales + " WHERE id = 1;");
-            stmt.execute("UPDATE today_stats SET profit = profit + " + total_profit + " WHERE id = 1;");
-            stmt.execute("UPDATE today_stats SET tot_goods_sld = tot_goods_sld + " + tot_quantity + " WHERE id = 1;");
-            stmt.execute("UPDATE today_stats SET cus_count = cus_count + 1  WHERE id = 1;");
-
-            stmt.execute("UPDATE monthly_stats SET sales = sales + " + total_sales + " WHERE id = 1;");
-            stmt.execute("UPDATE monthly_stats SET profit = profit + " + total_profit + " WHERE id = 1;");
-            stmt.execute("UPDATE monthly_stats SET tot_goods_sld = tot_goods_sld + " + tot_quantity + " WHERE id = 1;");
-            stmt.execute("UPDATE monthly_stats SET cus_count = cus_count + 1  WHERE id = 1;");
-
-            stmt.execute("UPDATE upto_date_stats SET sales = sales + " + total_sales + " WHERE id = 1;");
-            stmt.execute("UPDATE upto_date_stats SET profit = profit + " + total_profit + " WHERE id = 1;");
-            stmt.execute(
-                    "UPDATE upto_date_stats SET tot_goods_sld = tot_goods_sld + " + tot_quantity + " WHERE id = 1;");
-            stmt.execute("UPDATE upto_date_stats SET cus_count = cus_count + 1  WHERE id = 1;");
-        } catch (Exception e) {
-            System.out.println(e.getMessage());
-        }
-        System.out.println(tot_quantity + "|" + total_profit + "|" + total_sales);
-    }
-
-    boolean areLowStocks() {
-        return get_low_inv_items().size > 0;
-    }
 }
 
+// ======================>
+// Panels
 class AuthPanel extends JPanel implements ActionListener {
     Image image;
     BlueButton submit_btn;
@@ -429,20 +421,20 @@ class AuthPanel extends JPanel implements ActionListener {
         setSize(1550, 823);
         this.setLayout(null);
 
-        usr_nm_bx.setFont(new Font("Eras Demi ITC", 0, 24)); // NOI18N
+        usr_nm_bx.setFont(new Font("Eras Demi ITC", 0, 24)); 
         usr_nm_bx.setForeground(new Color(51, 102, 255));
         usr_nm_bx.setBorder(BorderFactory.createTitledBorder(new LineBorder(new Color(51, 102, 255), 1, true),
                 "username", TitledBorder.LEFT, TitledBorder.TOP, new Font("Eras Demi ITC", 0, 18),
-                new Color(51, 153, 255))); // NOI18N
+                new Color(51, 153, 255))); 
         usr_nm_bx.setCaretColor(new Color(51, 102, 255));
         usr_nm_bx.setCursor(new Cursor(Cursor.TEXT_CURSOR));
         usr_nm_bx.setBounds(575, 300, 400, 60);
 
-        pass_box.setFont(new Font("Eras Demi ITC", 0, 24)); // NOI18N
+        pass_box.setFont(new Font("Eras Demi ITC", 0, 24)); 
         pass_box.setForeground(new Color(51, 102, 255));
         pass_box.setBorder(BorderFactory.createTitledBorder(new LineBorder(new Color(51, 153, 255), 1, true),
                 "password", TitledBorder.LEFT, TitledBorder.DEFAULT_POSITION, new Font("Eras Demi ITC", 0, 18),
-                new Color(51, 153, 255))); // NOI18N
+                new Color(51, 153, 255))); 
         pass_box.setBounds(575, 380, 400, 60);
 
         submit_btn.addActionListener(this);
@@ -457,14 +449,7 @@ class AuthPanel extends JPanel implements ActionListener {
             String usr = usr_nm_bx.getText();
             String pass = new String(pass_box.getPassword());
             if (usr.equals("RTG") && pass.equals("rtg4ever")) {
-                JOptionPane.showMessageDialog(null, "RTG Succesfully Logged in", "RTG Login",
-                        JOptionPane.INFORMATION_MESSAGE);
-                mom.toHomePanel();
-                //add as many as else ifs to add user names
-            } else if (usr.equals("YOUR-NAME") && pass.equals("YOUR_PASS")) {
-                JOptionPane.showMessageDialog(null, "Rohit Succesfully Logged in", "Rohit Login",
-                        JOptionPane.INFORMATION_MESSAGE);
-                mom.toHomePanel();
+
             } else {
                 JOptionPane.showMessageDialog(null, "Wrong Username or Password", "Login Failed",
                         JOptionPane.ERROR_MESSAGE);
@@ -535,18 +520,7 @@ class HomePanel extends JPanel implements ActionListener {
     }
 
     void remindLowStock() {
-        if (!sql.areLowStocks()) {
-            return;
-        }
-        JFrame frame = new JFrame("Low Stock Reminder");
-        frame.setSize(500, 500);
-        frame.setLocationRelativeTo(null);
-        frame.setVisible(true);
-        frame.setLayout(null);
-        frame.setIconImage(mom.getIconImage());
-
-        ScrollPane pane = new ScrollPane(sql.get_low_inv_items(), 10, 10, 400, 400);
-        frame.add(pane);
+        // TO BE ADDED
     }
 
 }
@@ -568,9 +542,9 @@ class BussinessStatisticsPanel extends JPanel implements ActionListener {
         label2 = new JLabel("This Month");
         label3 = new JLabel("Up to Date");
 
-        pane1 = new ScrollPane(sql.get_daily_stats(), 200, 150, 350, 200);
-        pane2 = new ScrollPane(sql.get_monthly_stats(), 600, 150, 350, 200);
-        pane3 = new ScrollPane(sql.get_all_stats(), 1000, 150, 350, 200);
+        pane1 = new ScrollPane(sql.getTodayStats(), 200, 150, 350, 200);
+        pane2 = new ScrollPane(sql.getMonthlyStats(), 600, 150, 350, 200);
+        pane3 = new ScrollPane(sql.getAllStats(), 1000, 150, 350, 200);
 
         this.setLayout(null);
 
@@ -602,76 +576,17 @@ class BussinessStatisticsPanel extends JPanel implements ActionListener {
     }
 }
 
-/*
- * class ManageFinancesPanel extends JPanel implements ActionListener {
- * BlueButton back_btn;
- * JComboBox<String> cbox;
- * JLabel label1;
- * JLabel label2;
- * MyWindow mom;
- * JScrollPane pane1, pane2;
- * 
- * ManageFinancesPanel(MyWindow mom) {
- * this.mom = mom;
- * 
- * String[] ops = { "Today", "This Month", "Up To Date" };
- * Font font = new Font("Eras Demi ITC", 0, 24);
- * 
- * cbox = new JComboBox<>(ops);
- * back_btn = new BlueButton("<", 75, 75, 75, 50);
- * label1 = new JLabel("Profits");
- * label2 = new JLabel("Expenditure");
- * 
- * cbox.setFont(font); // NOI18N
- * cbox.setBorder(new LineBorder(new Color(51, 102, 255), 1, true));
- * cbox.setFocusable(false);
- * cbox.setBounds(250, 75, 300, 50);
- * 
- * back_btn.addActionListener(this);
- * 
- * pane1 = new JScrollPane();
- * pane2 = new JScrollPane();
- * 
- * pane1.setBounds(250, 210, 350, 500);
- * pane2.setBounds(750, 210, 350, 500);
- * 
- * label1.setFont(font); // NOI18N
- * label1.setBounds(250, 150, 300, 50);
- * 
- * label2.setFont(font); // NOI18N
- * label2.setBounds(750, 150, 300, 50);
- * 
- * this.setLayout(null);
- * this.add(back_btn);
- * this.add(cbox);
- * this.add(label1);
- * this.add(label2);
- * this.add(pane1);
- * this.add(pane2);
- * }
- * 
- * @Override
- * public void actionPerformed(ActionEvent e) {
- * if (e.getSource() == back_btn) {
- * mom.toHomePanel();
- * }
- * }
- * }
- */
-
 class ManageSalesPanel extends JPanel implements ActionListener {
     BlueButton back_btn, btn1, btn2, btn3, btn4, btn5, btn6;
-    JScrollPane scrollPane;
+    ScrollPane scrollPane;
     JLabel label;
     Font font = new Font("Eras Demi ITC", 0, 24);
     MyWindow mom;
     SqlOperations sql;
-    JComboBox<String> cbox;
-    Item item, newItem;
-    Table table;
-    MyList list;
+    JComboBox<MyData> cbox;
     int selectedItem;
     boolean added_btn6;
+    CustomTable table;
 
     ManageSalesPanel(MyWindow mom) {
         this.mom = mom;
@@ -679,22 +594,6 @@ class ManageSalesPanel extends JPanel implements ActionListener {
         this.setLayout(null);
 
         added_btn6 = false;
-
-        table = new Table();
-
-        list = new MyList(new String[1]);
-        list.addListSelectionListener(new ListSelectionListener() {
-            @Override
-            public void valueChanged(ListSelectionEvent e) {
-                if (!e.getValueIsAdjusting()) { 
-                    int selectedIndex = list.getSelectedIndex();
-                    if (selectedIndex != -1) {
-                        setSelectedItem(selectedIndex);
-                        add_btn6();
-                    }
-                }
-            }
-        });
 
         back_btn = new BlueButton("<", 75, 75, 75, 50);
         btn1 = new BlueButton("New Item", 300, 200, 300, 50);
@@ -709,11 +608,11 @@ class ManageSalesPanel extends JPanel implements ActionListener {
         label.setBounds(410, 400, 80, 50);
 
         sql = new SqlOperations();
+        table = new CustomTable();
+        scrollPane = new ScrollPane(table, 700, 80, 600, 600);
 
-        scrollPane = new JScrollPane(list);
-        scrollPane.setBounds(700, 80, 600, 600);
-
-        cbox = new JComboBox<>(sql.get_inv_item_names());
+        cbox = new JComboBox<>();
+        sql.populateNameList(cbox);
         cbox.setBounds(300, 270, 300, 50);
         cbox.setFont(font);
         cbox.addActionListener(this);
@@ -733,32 +632,27 @@ class ManageSalesPanel extends JPanel implements ActionListener {
 
     @Override
     public void actionPerformed(ActionEvent e) {
+        int q = 0;
+        MyData d = null;
         if (e.getSource() == back_btn) {
             mom.toHomePanel();
         }
         if (e.getSource() == btn1) {
-            if (sql.get_count_inv() == 0) {
-                JOptionPane.showMessageDialog(null, "No items in inventory", "Empty Inventory",
-                        JOptionPane.WARNING_MESSAGE);
-            } else {
-                this.add(cbox);
-            }
+            this.add(cbox);
         }
         if (e.getSource() == cbox) {
-
-            item = sql.getSpecificItem(String.format("%-14s", cbox.getSelectedItem()).substring(0, 14));
-
-            label.setText("1");
-
+            d = (MyData) cbox.getSelectedItem();
+            q = d.q;
             this.add(btn2);
             this.add(btn3);
             this.add(btn4);
             this.add(label);
-
+            label.setText("1");
         }
         if (e.getSource() == btn2) {
             int i = Integer.parseInt(label.getText());
-            if (i < item.quantiy) {
+            d = (MyData) cbox.getSelectedItem();
+            if (i < d.q) {
                 i++;
                 label.setText(String.valueOf(i));
             }
@@ -771,25 +665,21 @@ class ManageSalesPanel extends JPanel implements ActionListener {
             }
         }
         if (e.getSource() == btn4) {
-            newItem = new Item(item.id, item.name, Integer.parseInt(label.getText()), item.price);
-            table.items.add(newItem);
-            list.setListData(table.returnAsStirngL());
+            d = (MyData) cbox.getSelectedItem();
+            table.addRow(d.id, d.name, Integer.parseInt(label.getText()), d.p);
+            this.add(btn6);
             this.add(btn5);
         }
 
         if (e.getSource() == btn5) {
-            sql.update_db(table);
-            JOptionPane.showMessageDialog(null, "Succesful", "Confirm Message", JOptionPane.INFORMATION_MESSAGE);
+            sql.update(table);
+            JOptionPane.showMessageDialog(null, "Successful", "Payment Done", JOptionPane.INFORMATION_MESSAGE);
             mom.setContentPane(new ManageSalesPanel(mom));
-            mom.revalidate();
-            mom.repaint();
         }
 
         if (e.getSource() == btn6) {
-            table.items.remove(selectedItem);
-            list.setListData(table.returnAsStirngL());
+            table.deleteSelectedRow();
             this.remove(btn6);
-            added_btn6 = false;
         }
         mom.revalidate();
         mom.repaint();
@@ -815,12 +705,11 @@ class ManageInventoryPanel extends JPanel implements ActionListener {
     JScrollPane scrollPane;
     MyWindow mom;
     SqlOperations sql;
-    MyList list;
     String name;
     MyLabel label, num;
-    Item currentItem;
     JTextField box1, box2, box3;
     JFrame frame, frame2;
+    CustomTable table;
 
     ManageInventoryPanel(MyWindow mom) {
         this.mom = mom;
@@ -829,9 +718,10 @@ class ManageInventoryPanel extends JPanel implements ActionListener {
 
         sql = new SqlOperations();
 
-        list = sql.get_inv_items();
+        table = sql.getInventory();
+        table.setColumnWidths(497, 150, 150);
 
-        ScrollPane scrollPane = new ScrollPane(list, 600, 100, 800, 500);
+        ScrollPane scrollPane = new ScrollPane(table, 600, 100, 800, 500);
 
         font = new Font("Eras Demi ITC", 0, 28);
 
@@ -842,19 +732,6 @@ class ManageInventoryPanel extends JPanel implements ActionListener {
         btn21 = new BlueButton("+", 210, 50, 70, 50);
         btn22 = new BlueButton("-", 400, 50, 70, 50);
         btn23 = new BlueButton("Set", 480, 50, 70, 50);
-
-        list.addListSelectionListener(new ListSelectionListener() {
-            @Override
-            public void valueChanged(ListSelectionEvent e) {
-                if (!e.getValueIsAdjusting()) { // Prevent double events
-                    String selectedItem = list.getSelectedValue();
-                    if (selectedItem != null) {
-                        // Call the user-defined function
-                        setSelectedString(selectedItem);
-                    }
-                }
-            }
-        });
 
         back_btn.addActionListener(this);
         btn1.addActionListener(this);
@@ -873,6 +750,7 @@ class ManageInventoryPanel extends JPanel implements ActionListener {
 
     @Override
     public void actionPerformed(ActionEvent e) {
+        int q1 = 0;
         if (e.getSource() == back_btn) {
             mom.toHomePanel();
         }
@@ -921,25 +799,29 @@ class ManageInventoryPanel extends JPanel implements ActionListener {
             frame.setVisible(true);
         }
         if (e.getSource() == btn11) {
-            if (box1.getText().equals("") || box2.getText().equals("") || box3.getText().equals("")) {
+            String name = box1.getText();
+            String quantity = box2.getText();
+            String price = box3.getText();
+            if (name.equals("") || quantity.equals("") || price.equals("")) {
                 return;
             } else {
+                int q = Integer.parseInt(quantity);
+                double p = Integer.parseInt(price);
+                sql.addNewItem(name, q, p);
+                table.addRow(sql.getCurrentId() - 1, name, q, p);
                 frame.dispose();
-                sql.add_new_item(box1.getText(), Integer.parseInt(box2.getText()), Double.parseDouble(box3.getText()));
-                list.setListData(sql.get_inv_itemStrings());
-                list.revalidate();
-                list.repaint();
             }
         }
         if (e.getSource() == btn2) {
-            try {
-                if (sql.get_count_inv() == 0){
-                    throw new Exception();
-                }
-
-                currentItem = getItem();
-
-
+            if (!sql.isInventory()) {
+                JOptionPane.showMessageDialog(null, "Inventory is Empty!", "Empty Inventory",
+                        JOptionPane.WARNING_MESSAGE);
+            } else if (table.getSelectedRowId() == -1) {
+                JOptionPane.showMessageDialog(null, "Please Select a Item!", "No Row Selected",
+                        JOptionPane.WARNING_MESSAGE);
+            } else {
+                int id = table.getSelectedRowId();
+                q1 = sql.getQuantity(id);
                 frame2 = new JFrame("Modify Item");
                 frame2.setLayout(null);
                 frame2.setSize(580, 200);
@@ -947,19 +829,13 @@ class ManageInventoryPanel extends JPanel implements ActionListener {
                 frame2.setVisible(true);
 
                 label = new MyLabel("Quantity", 50, 50, 150, 50);
-                num = new MyLabel(String.valueOf(currentItem.quantiy), 300, 50, 70, 50);
+                num = new MyLabel(String.valueOf(q1), 300, 50, 70, 50);
 
                 frame2.add(btn21);
                 frame2.add(btn22);
                 frame2.add(btn23);
                 frame2.add(label);
                 frame2.add(num);
-            } catch (Exception e1) {
-                if (sql.get_count_inv() == 0){
-                    JOptionPane.showMessageDialog(null, "No items to modify", "Empty Inventory", JOptionPane.WARNING_MESSAGE);
-                } else {
-                    JOptionPane.showMessageDialog(null, "Please select an Item from the list beside!", "No item Selected!", JOptionPane.WARNING_MESSAGE);
-                }
             }
         }
         if (e.getSource() == btn21) {
@@ -977,40 +853,23 @@ class ManageInventoryPanel extends JPanel implements ActionListener {
             num.repaint();
         }
         if (e.getSource() == btn23) {
+            sql.updateInventoryQuantity(table.getSelectedRowId(), Integer.parseInt(num.getText()));
+            table.updateRow(table.getSelectedRowId(), Integer.parseInt(num.getText()));
             frame2.dispose();
-            sql.update_itm_qty(currentItem, Integer.parseInt(num.getText()));
-            list.setListData(sql.get_inv_itemStrings());
-            list.revalidate();
-            list.repaint();
         }
         if (e.getSource() == btn3) {
-            currentItem = getItem();
-            sql.delete_inv_itm(currentItem.id);
-            list.setListData(sql.get_inv_itemStrings());
-            list.revalidate();
-            list.repaint();
+            int id = table.getSelectedRowId();
+            if (!sql.isInventory()) {
+                JOptionPane.showMessageDialog(null, "Inventory is Empty!", "Empty Inventory",
+                        JOptionPane.WARNING_MESSAGE);
+            } else if (id == -1) {
+                JOptionPane.showMessageDialog(null, "Please select an Item", "No Item Selected",
+                        JOptionPane.WARNING_MESSAGE);
+            } else {
+                table.deleteSelectedRow();
+                sql.deleteInventoryItem(id);
+            }
         }
-    }
-
-    void setSelectedString(String s) {
-        name = s;
-    }
-
-    String getSelectedString() {
-        return name.substring(0, 14);
-    }
-
-    Item getItem() {
-        Item item = sql.getSpecificItem(getSelectedString());
-        return item;
-    }
-}
-
-class MyLabel extends Label {
-    MyLabel(String s, int x, int y, int w, int h) {
-        super(s);
-        this.setBounds(x, y, w, h);
-        super.setFont(new Font("Eras Demi ITC", Font.BOLD, 28));
     }
 }
 
@@ -1018,22 +877,18 @@ class MyWindow extends JFrame {
     ImageIcon icon;
     AuthPanel authPanel;
     HomePanel homePanel;
-    // ManageFinancesPanel manageFinancesPanel;
 
     MyWindow() {
         super("StoreSync®™");
-
         authPanel = new AuthPanel(this);
         homePanel = new HomePanel(this);
-        // manageFinancesPanel = new ManageFinancesPanel(this);
-
         icon = new ImageIcon("ss_50.png");
         this.setIconImage(icon.getImage());
         this.setLayout(null);
         this.setSize(1550, 823);
         this.setLocation(-7, 0);
         this.setDefaultCloseOperation(EXIT_ON_CLOSE);
-        this.setContentPane(authPanel);
+        this.setContentPane(homePanel);
         this.setVisible(true);
     }
 
@@ -1042,10 +897,26 @@ class MyWindow extends JFrame {
         this.revalidate();
         this.repaint();
     }
+
 }
 
-public class storesync {
+// ======================>
+// Main function
+public class Program {
+    public static boolean checkDBFile() {
+        File file = new File("storesync.db");
+        if (!file.exists()) {
+            JOptionPane.showMessageDialog(null, "Failure to open Database. Run JDBsetup.java", "DB Failure",
+                    JOptionPane.WARNING_MESSAGE);
+            return false;
+        }
+        return true;
+    }
+
     public static void main(String[] args) {
-        new MyWindow();
+        if (checkDBFile()) {
+            new MyWindow();
+        }
+
     }
 }
