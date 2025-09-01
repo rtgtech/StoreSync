@@ -1,13 +1,9 @@
-package V2;
-
 import javax.swing.*;
 import javax.swing.border.*;
-import javax.swing.event.*;
 import javax.swing.table.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.sql.*;
-import java.util.ArrayList;
 import java.time.LocalDate;
 import java.awt.geom.RoundRectangle2D;
 import java.io.File;
@@ -88,9 +84,12 @@ class MyLabel extends Label {
 
 class CustomTable extends JTable {
     private final DefaultTableModel model;
+
     public CustomTable() {
+        // Added "ID" column (first, hidden)
         String[] columnNames = { "ID", "Name", "Quantity", "Price" };
 
+        // Create model with no rows and non-editable cells
         model = new DefaultTableModel(columnNames, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -102,18 +101,24 @@ class CustomTable extends JTable {
         this.setFont(new Font("Eras Demi ITC", Font.PLAIN, 24));
         this.setRowHeight(30);
 
+        // Set row selection only
         this.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+
+        // Fill the entire viewport width (no horizontal scroll)
         this.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
 
+        // Hide the ID column (index 0)
         TableColumn idCol = this.getColumnModel().getColumn(0);
         this.getColumnModel().removeColumn(idCol);
     }
 
     public void setColumnWidths(int x, int y, int z) {
-        TableColumn nameCol = this.getColumnModel().getColumn(0); 
-        TableColumn qtyCol = this.getColumnModel().getColumn(1); 
-        TableColumn priceCol = this.getColumnModel().getColumn(2); 
+        // Columns are shifted left after removing ID column
+        TableColumn nameCol = this.getColumnModel().getColumn(0); // now "Name"
+        TableColumn qtyCol = this.getColumnModel().getColumn(1); // now "Quantity"
+        TableColumn priceCol = this.getColumnModel().getColumn(2); // now "Price"
 
+        // nameCol.setPreferredWidth(nameColWidth);
         nameCol.setPreferredWidth(x);
         qtyCol.setPreferredWidth(y);
         priceCol.setPreferredWidth(z);
@@ -140,7 +145,7 @@ class CustomTable extends JTable {
         int viewRow = this.getSelectedRow();
         if (viewRow >= 0) {
             int modelRow = convertRowIndexToModel(viewRow);
-            Object value = model.getValueAt(modelRow, 0); 
+            Object value = model.getValueAt(modelRow, 0); // 0 = ID column in model
             if (value instanceof Integer) {
                 return (Integer) value;
             } else {
@@ -155,11 +160,16 @@ class CustomTable extends JTable {
     }
 
     public void updateRow(int id, int q) {
+        // Iterate through the rows in the model to find a matching ID
         for (int i = 0; i < model.getRowCount(); i++) {
+            // Get the ID from the first column (index 0) of the current row in the model
             Object value = model.getValueAt(i, 0);
+
             if (value instanceof Integer && (Integer) value == id) {
+                // Found the row, now update the quantity column
+                // Quantity is at index 2 in the model
                 model.setValueAt(q, i, 2);
-                return; 
+                return; // Exit the loop once the row is found and updated
             }
         }
     }
@@ -290,7 +300,8 @@ class SqlOperations {
 
         String query = "SELECT * FROM inventory";
 
-        try (ResultSet rs = stmt.executeQuery(query)) {
+        try {
+            ResultSet rs = stmt.executeQuery(query);
             while (rs.next()) {
                 int id = rs.getInt("id");
                 String name = rs.getString("item");
@@ -299,8 +310,9 @@ class SqlOperations {
 
                 table.addRow(id, name, quantity, price);
             }
+            rs.close();
         } catch (SQLException e) {
-            e.printStackTrace(); 
+            e.printStackTrace(); // or log it properly
         }
 
         return table;
@@ -320,19 +332,52 @@ class SqlOperations {
             ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM inventory;");
             rs.next();
             n = rs.getInt(1);
+            rs.close();
         } catch (Exception e) {
             System.out.println(e.getMessage());
         }
         return n != 0;
     }
 
-    public void update(CustomTable table){
+    public boolean isItems() {
+        int n = 0;
+        try {
+            ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM inventory WHERE count > 0;");
+            rs.next();
+            n = rs.getInt(1);
+            rs.close();
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+        return n != 0;
+    }
+
+    public void update(CustomTable table) {
         try {
             TableModel model = table.getModel();
-            for (int i=0;i<model.getRowCount(); i++){
+            for (int i = 0; i < model.getRowCount(); i++) {
                 int id = (int) model.getValueAt(i, 0);
                 int count = (int) model.getValueAt(i, 2);
-                stmt.execute("UPDATE inventory SET count = count - "+count+" WHERE id = "+id+";");
+                double p = (double) model.getValueAt(i, 3);
+                double total_sales = count*p;
+                double total_profit = total_sales/5;
+                stmt.execute("UPDATE inventory SET count = count - " + count + " WHERE id = " + id + ";");
+
+                stmt.execute("UPDATE today_stats SET sales = sales + " + total_sales + " WHERE id = 1;");
+                stmt.execute("UPDATE today_stats SET profit = profit + " + total_profit + " WHERE id = 1;");
+                stmt.execute( "UPDATE today_stats SET tot_goods_sld = tot_goods_sld + " + count + " WHERE id = 1;");
+                stmt.execute("UPDATE today_stats SET cus_count = cus_count + 1  WHERE id = 1;");
+
+                stmt.execute("UPDATE monthly_stats SET sales = sales + " + total_sales + " WHERE id = 1;");
+                stmt.execute("UPDATE monthly_stats SET profit = profit + " + total_profit + " WHERE id = 1;");
+                stmt.execute("UPDATE monthly_stats SET tot_goods_sld = tot_goods_sld + " + count + " WHERE id = 1;");
+                stmt.execute("UPDATE monthly_stats SET cus_count = cus_count + 1  WHERE id = 1;");
+
+                stmt.execute("UPDATE upto_date_stats SET sales = sales + " + total_sales + " WHERE id = 1;");
+                stmt.execute("UPDATE upto_date_stats SET profit = profit + " + total_profit + " WHERE id = 1;");
+                stmt.execute( "UPDATE upto_date_stats SET tot_goods_sld = tot_goods_sld + " + count
+                                + " WHERE id = 1;");
+                stmt.execute("UPDATE upto_date_stats SET cus_count = cus_count + 1  WHERE id = 1;");
             }
         } catch (Exception e) {
             System.out.println(e.getMessage());
@@ -421,20 +466,20 @@ class AuthPanel extends JPanel implements ActionListener {
         setSize(1550, 823);
         this.setLayout(null);
 
-        usr_nm_bx.setFont(new Font("Eras Demi ITC", 0, 24)); 
+        usr_nm_bx.setFont(new Font("Eras Demi ITC", 0, 24)); // NOI18N
         usr_nm_bx.setForeground(new Color(51, 102, 255));
         usr_nm_bx.setBorder(BorderFactory.createTitledBorder(new LineBorder(new Color(51, 102, 255), 1, true),
                 "username", TitledBorder.LEFT, TitledBorder.TOP, new Font("Eras Demi ITC", 0, 18),
-                new Color(51, 153, 255))); 
+                new Color(51, 153, 255))); // NOI18N
         usr_nm_bx.setCaretColor(new Color(51, 102, 255));
         usr_nm_bx.setCursor(new Cursor(Cursor.TEXT_CURSOR));
         usr_nm_bx.setBounds(575, 300, 400, 60);
 
-        pass_box.setFont(new Font("Eras Demi ITC", 0, 24)); 
+        pass_box.setFont(new Font("Eras Demi ITC", 0, 24)); // NOI18N
         pass_box.setForeground(new Color(51, 102, 255));
         pass_box.setBorder(BorderFactory.createTitledBorder(new LineBorder(new Color(51, 153, 255), 1, true),
                 "password", TitledBorder.LEFT, TitledBorder.DEFAULT_POSITION, new Font("Eras Demi ITC", 0, 18),
-                new Color(51, 153, 255))); 
+                new Color(51, 153, 255))); // NOI18N
         pass_box.setBounds(575, 380, 400, 60);
 
         submit_btn.addActionListener(this);
@@ -609,6 +654,7 @@ class ManageSalesPanel extends JPanel implements ActionListener {
 
         sql = new SqlOperations();
         table = new CustomTable();
+        table.setColumnWidths(350, 122, 125);
         scrollPane = new ScrollPane(table, 700, 80, 600, 600);
 
         cbox = new JComboBox<>();
@@ -632,17 +678,20 @@ class ManageSalesPanel extends JPanel implements ActionListener {
 
     @Override
     public void actionPerformed(ActionEvent e) {
-        int q = 0;
         MyData d = null;
         if (e.getSource() == back_btn) {
             mom.toHomePanel();
         }
         if (e.getSource() == btn1) {
-            this.add(cbox);
+            if (!sql.isItems()) {
+                JOptionPane.showMessageDialog(null, "No items in inventory", "Empty inventory",
+                        JOptionPane.WARNING_MESSAGE);
+            } else {
+                this.add(cbox);
+            }
         }
         if (e.getSource() == cbox) {
             d = (MyData) cbox.getSelectedItem();
-            q = d.q;
             this.add(btn2);
             this.add(btn3);
             this.add(btn4);
@@ -877,11 +926,14 @@ class MyWindow extends JFrame {
     ImageIcon icon;
     AuthPanel authPanel;
     HomePanel homePanel;
+    // ManageFinancesPanel manageFinancesPanel;
 
     MyWindow() {
         super("StoreSync®™");
         authPanel = new AuthPanel(this);
         homePanel = new HomePanel(this);
+        // manageFinancesPanel = new ManageFinancesPanel(this);
+
         icon = new ImageIcon("ss_50.png");
         this.setIconImage(icon.getImage());
         this.setLayout(null);
@@ -916,6 +968,8 @@ public class Program {
     public static void main(String[] args) {
         if (checkDBFile()) {
             new MyWindow();
+        } else {
+            JOptionPane.showMessageDialog(null, "Failure to open and read storesync.db. Run JDBsetup.class", "DB init failure", JOptionPane.WARNING_MESSAGE);
         }
 
     }
