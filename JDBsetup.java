@@ -1,5 +1,9 @@
+package V2;
+
 import java.io.File;
 import java.sql.*;
+import java.time.LocalDate;
+import java.util.*;
 
 public class JDBSetup {
     static String url = "jdbc:sqlite:storesync.db";
@@ -48,7 +52,7 @@ public class JDBSetup {
                 stmt.execute(init_2);
                 stmt.execute(init_3);
                 System.out.println("Initialized Tables ...");
-                
+
             }
 
         } catch (SQLException e) {
@@ -59,12 +63,87 @@ public class JDBSetup {
 
     }
 
+    public static void checkIntegrity() {
+        String dbUrl = "jdbc:sqlite:storesync.db";
+
+        Map<String, List<String>> expectedTables = new HashMap<>();
+        expectedTables.put("today_stats", Arrays.asList("id", "sales", "exps", "profit", "tot_goods_sld", "cus_count"));
+        expectedTables.put("monthly_stats", Arrays.asList("id", "sales", "exps", "profit", "tot_goods_sld", "cus_count"));
+        expectedTables.put("upto_date_stats", Arrays.asList("id", "sales", "exps", "profit", "tot_goods_sld", "cus_count"));
+        expectedTables.put("inventory", Arrays.asList("id", "item", "count", "price"));
+        expectedTables.put("current", Arrays.asList("id", "curr_id", "curr_date"));
+
+        boolean corrupted = false;
+        try (Connection conn = DriverManager.getConnection(dbUrl)) {
+            if (conn == null) {
+                System.out.println("Corrupted");
+                return;
+            }
+
+            DatabaseMetaData meta = conn.getMetaData();
+
+            for (String tableName : expectedTables.keySet()) {
+                boolean tableExists = false;
+                try (ResultSet tables = meta.getTables(null, null, tableName, new String[]{"TABLE"})) {
+                    tableExists = tables.next();
+                }
+                if (!tableExists) {
+                    corrupted = true;
+                    break;
+                }
+                Set<String> actualColumns = new HashSet<>();
+                try (ResultSet columns = meta.getColumns(null, null, tableName, null)) {
+                    while (columns.next()) {
+                        actualColumns.add(columns.getString("COLUMN_NAME"));
+                    }
+                }
+                for (String expectedColumn : expectedTables.get(tableName)) {
+                    if (!actualColumns.contains(expectedColumn)) {
+                        corrupted = true;
+                        break;
+                    }
+                }
+                if (corrupted) break;
+            }
+        } catch (SQLException e) {
+            corrupted = true;
+        }
+        if (corrupted) {
+            System.out.println("Corrupted");
+        } else {
+            System.out.println("No issue");
+        }
+    }
+    public static void addNewUser() {
+
+    }
     public static void main(String[] args) {
         File file = new File("storesync.db");
-        if (!file.exists()){
+        if (!file.exists()) {
             System.out.println("storesync.db not found. Creating storesync.db ...");
             buildNewTable();
+        } else {
+            Scanner ip = new Scanner(System.in);
+            System.out.print("Run Auto Checkup ? [y/n] : ");
+            char res = Character.toLowerCase(ip.next().charAt(0));
+            ip.nextLine();
+            if (res == 'y') {
+                checkIntegrity();
+            }
+            System.out.println("===> INFO <===");
+            System.out.println(">>> add // Add new user");
+            System.out.println(">>> reset // Delete All Users and Data");
+            System.out.print("storesync(setup) >>> ");
+            String s_res = ip.nextLine().toLowerCase();
+            if (s_res.equals("add")) {
+
+            } else if (s_res.equals("reset")) {
+                
+            } else {
+                System.out.println("|"+s_res+"|");
+            }
+            ip.close();
         }
-        
+
     }
 }
