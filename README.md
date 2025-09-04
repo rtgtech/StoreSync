@@ -14,4 +14,6 @@ this project. I extend my gratitude to my friends and Mentors.
 - 23-Aug-2025: Added storesync.java
 - 30-Aug-2025: Major Code Refactoring (storesync.java). Removed unnecessary and useless code added custom classes. Improved Readability. Bugs pending
 - 1-Sept-2025: Major Code Refactoring (storesync.java). Slight UI improvement.
-- 4-Sept-2025: Major Code Refactoring (JDBSetup.java). JDBSetup is now fully functional.
+- 4-Sept-2025:
+  - Major Code Refactoring (JDBSetup.java). JDBSetup is now fully functional.
+  - Major Code Refactoring (storesync.java). Added Low Stock Notification feature and fixed the sql busy/ database locked error.
