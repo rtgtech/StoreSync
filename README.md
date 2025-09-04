@@ -12,5 +12,6 @@ this project. I extend my gratitude to my friends and Mentors.
 
 ### Change Logs
 - 23-Aug-2025: Added storesync.java
-- 30-Aug-2025: Major Code Refactoring. Removed unnecessary and useless code added custom classes. Improved Readability. Bugs pending
-- 1-Sept-2025: Major Code Refactoring. Slight UI improvement.
+- 30-Aug-2025: Major Code Refactoring (storesync.java). Removed unnecessary and useless code added custom classes. Improved Readability. Bugs pending
+- 1-Sept-2025: Major Code Refactoring (storesync.java). Slight UI improvement.
+- 4-Sept-2025: Major Code Refactoring (JDBSetup.java). JDBSetup is now fully functional.
