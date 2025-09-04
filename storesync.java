@@ -10,7 +10,6 @@ import java.io.File;
 
 //=======================>
 //Modified GUI components
-
 class BlueButton extends JButton {
     private int cornerRadius = 20;
 
@@ -62,16 +61,13 @@ class ScrollPane extends JScrollPane {
         super(table);
         this.setBounds(x, y, w, h);
     }
-
     ScrollPane(JList<String> list, int x, int y, int w, int h) {
         super(list);
         this.setBounds(x, y, w, h);
     }
-
     ScrollPane(int x, int y, int w, int h) {
         this.setBounds(x, y, w, h);
     }
-
 }
 
 class MyLabel extends Label {
@@ -86,39 +82,27 @@ class CustomTable extends JTable {
     private final DefaultTableModel model;
 
     public CustomTable() {
-        // Added "ID" column (first, hidden)
         String[] columnNames = { "ID", "Name", "Quantity", "Price" };
-
-        // Create model with no rows and non-editable cells
+        
         model = new DefaultTableModel(columnNames, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
                 return false;
             }
         };
-
         this.setModel(model);
         this.setFont(new Font("Eras Demi ITC", Font.PLAIN, 24));
         this.setRowHeight(30);
-
-        // Set row selection only
         this.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-
-        // Fill the entire viewport width (no horizontal scroll)
         this.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
-
-        // Hide the ID column (index 0)
         TableColumn idCol = this.getColumnModel().getColumn(0);
         this.getColumnModel().removeColumn(idCol);
     }
 
     public void setColumnWidths(int x, int y, int z) {
-        // Columns are shifted left after removing ID column
-        TableColumn nameCol = this.getColumnModel().getColumn(0); // now "Name"
-        TableColumn qtyCol = this.getColumnModel().getColumn(1); // now "Quantity"
-        TableColumn priceCol = this.getColumnModel().getColumn(2); // now "Price"
-
-        // nameCol.setPreferredWidth(nameColWidth);
+        TableColumn nameCol = this.getColumnModel().getColumn(0);
+        TableColumn qtyCol = this.getColumnModel().getColumn(1);
+        TableColumn priceCol = this.getColumnModel().getColumn(2);
         nameCol.setPreferredWidth(x);
         qtyCol.setPreferredWidth(y);
         priceCol.setPreferredWidth(z);
@@ -145,7 +129,7 @@ class CustomTable extends JTable {
         int viewRow = this.getSelectedRow();
         if (viewRow >= 0) {
             int modelRow = convertRowIndexToModel(viewRow);
-            Object value = model.getValueAt(modelRow, 0); // 0 = ID column in model
+            Object value = model.getValueAt(modelRow, 0); 
             if (value instanceof Integer) {
                 return (Integer) value;
             } else {
@@ -160,16 +144,11 @@ class CustomTable extends JTable {
     }
 
     public void updateRow(int id, int q) {
-        // Iterate through the rows in the model to find a matching ID
         for (int i = 0; i < model.getRowCount(); i++) {
-            // Get the ID from the first column (index 0) of the current row in the model
             Object value = model.getValueAt(i, 0);
-
             if (value instanceof Integer && (Integer) value == id) {
-                // Found the row, now update the quantity column
-                // Quantity is at index 2 in the model
                 model.setValueAt(q, i, 2);
-                return; // Exit the loop once the row is found and updated
+                return; 
             }
         }
     }
@@ -224,6 +203,19 @@ class SqlOperations {
         } catch (Exception e) {
             System.out.println(e.getMessage());
         }
+    }
+
+    public boolean validateUser(String n, String p){
+        try {
+            ResultSet rs = stmt.executeQuery("SELECT * FROM users WHERE name = '"+n+"'");
+            while (rs.next()){
+                String _p = rs.getString(2);
+                return _p.equals(p);
+            }
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+        return false;
     }
 
     public JList<String> getTodayStats() {
@@ -453,11 +445,14 @@ class AuthPanel extends JPanel implements ActionListener {
     JPasswordField pass_box;
     JTextField usr_nm_bx;
     MyWindow mom;
+    SqlOperations sql;
 
     AuthPanel(MyWindow mom) {
         this.mom = mom;
 
-        image = new ImageIcon("bg.png").getImage();
+        image = new ImageIcon("img/bg.png").getImage();
+
+        sql = new SqlOperations();
 
         usr_nm_bx = new JTextField();
         pass_box = new JPasswordField();
@@ -466,20 +461,20 @@ class AuthPanel extends JPanel implements ActionListener {
         setSize(1550, 823);
         this.setLayout(null);
 
-        usr_nm_bx.setFont(new Font("Eras Demi ITC", 0, 24)); // NOI18N
+        usr_nm_bx.setFont(new Font("Eras Demi ITC", 0, 24)); 
         usr_nm_bx.setForeground(new Color(51, 102, 255));
         usr_nm_bx.setBorder(BorderFactory.createTitledBorder(new LineBorder(new Color(51, 102, 255), 1, true),
                 "username", TitledBorder.LEFT, TitledBorder.TOP, new Font("Eras Demi ITC", 0, 18),
-                new Color(51, 153, 255))); // NOI18N
+                new Color(51, 153, 255))); 
         usr_nm_bx.setCaretColor(new Color(51, 102, 255));
         usr_nm_bx.setCursor(new Cursor(Cursor.TEXT_CURSOR));
         usr_nm_bx.setBounds(575, 300, 400, 60);
 
-        pass_box.setFont(new Font("Eras Demi ITC", 0, 24)); // NOI18N
+        pass_box.setFont(new Font("Eras Demi ITC", 0, 24)); 
         pass_box.setForeground(new Color(51, 102, 255));
         pass_box.setBorder(BorderFactory.createTitledBorder(new LineBorder(new Color(51, 153, 255), 1, true),
                 "password", TitledBorder.LEFT, TitledBorder.DEFAULT_POSITION, new Font("Eras Demi ITC", 0, 18),
-                new Color(51, 153, 255))); // NOI18N
+                new Color(51, 153, 255))); 
         pass_box.setBounds(575, 380, 400, 60);
 
         submit_btn.addActionListener(this);
@@ -493,8 +488,8 @@ class AuthPanel extends JPanel implements ActionListener {
         if (e.getSource() == submit_btn) {
             String usr = usr_nm_bx.getText();
             String pass = new String(pass_box.getPassword());
-            if (usr.equals("RTG") && pass.equals("rtg4ever")) {
-
+            if (sql.validateUser(usr, pass)) {
+                mom.toHomePanel();
             } else {
                 JOptionPane.showMessageDialog(null, "Wrong Username or Password", "Login Failed",
                         JOptionPane.ERROR_MESSAGE);
@@ -926,21 +921,19 @@ class MyWindow extends JFrame {
     ImageIcon icon;
     AuthPanel authPanel;
     HomePanel homePanel;
-    // ManageFinancesPanel manageFinancesPanel;
 
     MyWindow() {
         super("StoreSync®™");
         authPanel = new AuthPanel(this);
         homePanel = new HomePanel(this);
-        // manageFinancesPanel = new ManageFinancesPanel(this);
 
-        icon = new ImageIcon("ss_50.png");
+        icon = new ImageIcon("img/ss_50.png");
         this.setIconImage(icon.getImage());
         this.setLayout(null);
         this.setSize(1550, 823);
         this.setLocation(-7, 0);
         this.setDefaultCloseOperation(EXIT_ON_CLOSE);
-        this.setContentPane(homePanel);
+        this.setContentPane(authPanel);
         this.setVisible(true);
     }
 
@@ -949,7 +942,6 @@ class MyWindow extends JFrame {
         this.revalidate();
         this.repaint();
     }
-
 }
 
 // ======================>
@@ -958,16 +950,35 @@ public class Program {
     public static boolean checkDBFile() {
         File file = new File("storesync.db");
         if (!file.exists()) {
-            JOptionPane.showMessageDialog(null, "Failure to open Database. Run JDBsetup.java", "DB Failure",
-                    JOptionPane.WARNING_MESSAGE);
             return false;
         }
         return true;
     }
 
+    public static boolean checkUsers() {
+        try {
+            Connection conn = DriverManager.getConnection("jdbc:sqlite:storesync.db");
+            Statement stmt = conn.createStatement();
+            ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM users;");
+            rs.next();
+            int n = rs.getInt(1);
+            rs.close();
+            stmt.close();
+            conn.close();
+            return n==0;
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+        return false;
+    }
+
     public static void main(String[] args) {
         if (checkDBFile()) {
-            new MyWindow();
+            if (checkUsers()){
+                JOptionPane.showMessageDialog(null, "No Users Found! Run JDBSetup to add users", "Users not Found", JOptionPane.WARNING_MESSAGE);
+            } else {
+                new MyWindow();
+            }   
         } else {
             JOptionPane.showMessageDialog(null, "Failure to open and read storesync.db. Run JDBsetup.class", "DB init failure", JOptionPane.WARNING_MESSAGE);
         }
