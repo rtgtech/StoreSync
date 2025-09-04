@@ -61,13 +61,16 @@ class ScrollPane extends JScrollPane {
         super(table);
         this.setBounds(x, y, w, h);
     }
+
     ScrollPane(JList<String> list, int x, int y, int w, int h) {
         super(list);
         this.setBounds(x, y, w, h);
     }
+
     ScrollPane(int x, int y, int w, int h) {
         this.setBounds(x, y, w, h);
     }
+
 }
 
 class MyLabel extends Label {
@@ -83,13 +86,14 @@ class CustomTable extends JTable {
 
     public CustomTable() {
         String[] columnNames = { "ID", "Name", "Quantity", "Price" };
-        
+
         model = new DefaultTableModel(columnNames, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
                 return false;
             }
         };
+
         this.setModel(model);
         this.setFont(new Font("Eras Demi ITC", Font.PLAIN, 24));
         this.setRowHeight(30);
@@ -100,9 +104,9 @@ class CustomTable extends JTable {
     }
 
     public void setColumnWidths(int x, int y, int z) {
-        TableColumn nameCol = this.getColumnModel().getColumn(0);
-        TableColumn qtyCol = this.getColumnModel().getColumn(1);
-        TableColumn priceCol = this.getColumnModel().getColumn(2);
+        TableColumn nameCol = this.getColumnModel().getColumn(0); 
+        TableColumn qtyCol = this.getColumnModel().getColumn(1); 
+        TableColumn priceCol = this.getColumnModel().getColumn(2); 
         nameCol.setPreferredWidth(x);
         qtyCol.setPreferredWidth(y);
         priceCol.setPreferredWidth(z);
@@ -146,6 +150,7 @@ class CustomTable extends JTable {
     public void updateRow(int id, int q) {
         for (int i = 0; i < model.getRowCount(); i++) {
             Object value = model.getValueAt(i, 0);
+
             if (value instanceof Integer && (Integer) value == id) {
                 model.setValueAt(q, i, 2);
                 return; 
@@ -206,16 +211,22 @@ class SqlOperations {
     }
 
     public boolean validateUser(String n, String p){
+        boolean flag = false;
         try {
             ResultSet rs = stmt.executeQuery("SELECT * FROM users WHERE name = '"+n+"'");
+            String _p;
             while (rs.next()){
-                String _p = rs.getString(2);
-                return _p.equals(p);
+                _p = rs.getString(2);
+                if (p.equals(_p)) {
+                    flag = true;
+                    break;
+                }
             }
+            rs.close();
         } catch (Exception e) {
             System.out.println(e.getMessage());
         }
-        return false;
+        return flag;
     }
 
     public JList<String> getTodayStats() {
@@ -310,6 +321,25 @@ class SqlOperations {
         return table;
     }
 
+    public JList<String> getLowItems(){
+        JList<String> jls = new JList<>();
+        try {
+            ResultSet rs = stmt.executeQuery("SELECT * FROM inventory WHERE count < 3;");
+            DefaultListModel<String> listModel = new DefaultListModel<>();
+            while (rs.next()) {
+                listModel.addElement(rs.getString(2));
+            }
+            rs.close();
+            jls = new JList<>(listModel);
+            jls.setFont(new Font("Eras Demi ITC", Font.PLAIN, 30));
+            jls.setEnabled(false);
+
+        } catch (SQLException e) {
+            System.out.println(e.getMessage());
+        }
+        return jls;
+    }
+
     public void updateInventoryQuantity(int id, int q) {
         try {
             stmt.execute("UPDATE inventory SET count = " + q + " WHERE id = " + id + ";");
@@ -335,6 +365,18 @@ class SqlOperations {
         int n = 0;
         try {
             ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM inventory WHERE count > 0;");
+            rs.next();
+            n = rs.getInt(1);
+            rs.close();
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+        return n != 0;
+    }
+    public boolean areLowItems() {
+        int n = 0;
+        try {
+            ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM inventory WHERE count < 3;");
             rs.next();
             n = rs.getInt(1);
             rs.close();
@@ -461,20 +503,20 @@ class AuthPanel extends JPanel implements ActionListener {
         setSize(1550, 823);
         this.setLayout(null);
 
-        usr_nm_bx.setFont(new Font("Eras Demi ITC", 0, 24)); 
+        usr_nm_bx.setFont(new Font("Eras Demi ITC", 0, 24)); // NOI18N
         usr_nm_bx.setForeground(new Color(51, 102, 255));
         usr_nm_bx.setBorder(BorderFactory.createTitledBorder(new LineBorder(new Color(51, 102, 255), 1, true),
                 "username", TitledBorder.LEFT, TitledBorder.TOP, new Font("Eras Demi ITC", 0, 18),
-                new Color(51, 153, 255))); 
+                new Color(51, 153, 255))); // NOI18N
         usr_nm_bx.setCaretColor(new Color(51, 102, 255));
         usr_nm_bx.setCursor(new Cursor(Cursor.TEXT_CURSOR));
         usr_nm_bx.setBounds(575, 300, 400, 60);
 
-        pass_box.setFont(new Font("Eras Demi ITC", 0, 24)); 
+        pass_box.setFont(new Font("Eras Demi ITC", 0, 24)); // NOI18N
         pass_box.setForeground(new Color(51, 102, 255));
         pass_box.setBorder(BorderFactory.createTitledBorder(new LineBorder(new Color(51, 153, 255), 1, true),
                 "password", TitledBorder.LEFT, TitledBorder.DEFAULT_POSITION, new Font("Eras Demi ITC", 0, 18),
-                new Color(51, 153, 255))); 
+                new Color(51, 153, 255))); // NOI18N
         pass_box.setBounds(575, 380, 400, 60);
 
         submit_btn.addActionListener(this);
@@ -508,7 +550,7 @@ class AuthPanel extends JPanel implements ActionListener {
 }
 
 class HomePanel extends JPanel implements ActionListener {
-    BlueButton btn1, btn2, btn3, btn4, btn5, logout_btn;
+    BlueButton btn1, btn2, btn4, btn5, logout_btn;
     MyWindow mom;
     SqlOperations sql;
 
@@ -522,19 +564,16 @@ class HomePanel extends JPanel implements ActionListener {
         sql = new SqlOperations();
 
         btn2 = new BlueButton("Business Statistics", 220, 75, 350, 200);
-        btn3 = new BlueButton("Manage Finances", 520, 75, 250, 200);
         btn4 = new BlueButton("Manage Sales", 610, 75, 350, 200);
         btn5 = new BlueButton("<html>Manage <br>Inventory</html>", 1020, 75, 350, 200);
         logout_btn = new BlueButton("Logout", 65, 75, 140, 50);
 
         btn2.addActionListener(this);
-        btn3.addActionListener(this);
         btn4.addActionListener(this);
         btn5.addActionListener(this);
         logout_btn.addActionListener(this);
 
         this.add(btn2);
-        // this.add(btn3);
         this.add(btn4);
         this.add(btn5);
         this.add(logout_btn);
@@ -560,9 +599,18 @@ class HomePanel extends JPanel implements ActionListener {
     }
 
     void remindLowStock() {
-        // TO BE ADDED
-    }
+        if (sql.areLowItems()){
+            JFrame frame = new JFrame("Low Stock Reminder");
+            frame.setSize(500, 500);
+            frame.setLocationRelativeTo(null);
+            frame.setVisible(true);
+            frame.setLayout(null);
+            frame.setIconImage(mom.getIconImage());
 
+            ScrollPane pane = new ScrollPane(sql.getLowItems(),40, 30, 400, 400 );
+            frame.add(pane);
+        }
+    }
 }
 
 class BussinessStatisticsPanel extends JPanel implements ActionListener {
@@ -926,8 +974,8 @@ class MyWindow extends JFrame {
         super("StoreSync®™");
         authPanel = new AuthPanel(this);
         homePanel = new HomePanel(this);
-
         icon = new ImageIcon("img/ss_50.png");
+        
         this.setIconImage(icon.getImage());
         this.setLayout(null);
         this.setSize(1550, 823);
@@ -982,6 +1030,5 @@ public class Program {
         } else {
             JOptionPane.showMessageDialog(null, "Failure to open and read storesync.db. Run JDBsetup.class", "DB init failure", JOptionPane.WARNING_MESSAGE);
         }
-
     }
 }
